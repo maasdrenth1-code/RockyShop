@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>RockyShop Admin - Voorraad & Bestellingen</title>
+    <style>
+        /* --- DE NIEUWE "CHOCOLATE SWIRL" ACHTERGROND --- */
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            font-family: sans-serif; 
+            color: #3e2516; 
+            min-height: 100vh;
+            background-color: #5d3a24;
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(43, 20, 6, 0.9) 0px, transparent 50%),
+                radial-gradient(at 90% 85%, rgba(78, 49, 31, 0.8) 0px, transparent 50%),
+                linear-gradient(180deg, #5d3a24 0%, #4e311f 100%);
+            background-attachment: fixed;
+        }
+
+        .dripping-header {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100px;
+            background-image: url('image_5190f8.png'); 
+            background-size: contain; background-repeat: repeat-x; z-index: 1000; 
+            mix-blend-mode: multiply; pointer-events: none; opacity: 0.9;
+        }
+
+        .admin-wrapper { max-width: 900px; margin: 80px auto 0 auto; position: relative; z-index: 10; }
+
+        /* Login & Kaarten */
+        .login-box { 
+            max-width: 300px; margin: 100px auto; text-align: center; 
+            background: rgba(255, 255, 255, 0.95); padding: 30px; 
+            border-radius: 20px; border: 4px solid #ff9800; box-shadow: 0 15px 30px rgba(0,0,0,0.3); 
+        }
+
+        .order-card { 
+            background: white; border: 2px solid #3e2516; padding: 20px; 
+            margin-bottom: 15px; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); 
+        }
+
+        .status { font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 12px; float: right; }
+        .BETAALD { background: #e8f5e9; color: #2e7d32; border: 1px solid #2e7d32; }
+        .In-behandeling { background: #fff3e0; color: #ef6c00; border: 1px solid #ef6c00; }
+        .Klaar { background: #4caf50; color: white; }
+        
+        /* Knoppen */
+        .btn { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 8px; margin-top: 10px; transition: 0.2s; position: relative; }
+        .btn:hover { opacity: 0.8; transform: translateY(-2px); }
+        .btn-blue { background: #2196F3; color: white; }
+        .btn-green { background: #4caf50; color: white; }
+        .btn-orange { background: #ff9800; color: white; }
+        .btn-red { background: #f44336; color: white; }
+        .btn-info { background: #795548; color: white; }
+        .btn-purple { background: #673ab7; color: white; box-shadow: 0 4px 0 #4527a0; }
+        .btn-dark { background: #3e2516; color: white; }
+
+        /* MELDING BADGE */
+        .warning-badge {
+            position: absolute; top: -12px; right: -5px;
+            background: #ff5722; color: white; font-size: 10px;
+            padding: 3px 6px; border-radius: 5px; border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
+        .popup { background: white; padding: 25px; border-radius: 15px; text-align: center; max-width: 500px; width: 95%; color: #3e2516; border: 5px solid #ff9800; }
+        
+        .stock-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
+        .header-row { font-size: 10px; font-weight: bold; color: #777; }
+        .ah-link { display: block; background: #00adef; color: white; padding: 10px; margin: 8px 0; text-decoration: none; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="dripping-header"></div>
+
+    <div class="admin-wrapper">
+        <div id="login-screen" class="login-box">
+            <h1 style="color:#2b1406; margin-top:0;">Admin Paneel</h1>
+            <input type="password" id="pass" placeholder="Wachtwoord">
+            <button class="btn btn-blue" style="width:100%" onclick="checkPass()">INLOGGEN</button>
+        </div>
+
+        <div id="admin-content" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #2b1406; padding: 20px; border-radius: 15px; color: white; margin-bottom: 20px; border-bottom: 5px solid #ff9800; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+                <h1 style="margin:0;">🍫 Keuken Overzicht</h1>
+                <button class="btn btn-purple" onclick="openStock()">📦 VOORRAAD</button>
+            </div>
+            <div id="list"></div>
+        </div>
+    </div>
+
+    <div id="stockPopup" class="overlay">
+        <div class="popup">
+            <h2>📦 Actuele Voorraad</h2>
+            <div class="stock-row header-row">
+                <div>Product</div><div>Zakken</div><div>Aantal</div><div>Vol %</div>
+            </div>
+            <div id="stockList"></div>
+            <button class="btn btn-green" style="width: 100%; margin-top: 20px;" onclick="saveStock()">VOORRAAD OPSLAAN</button>
+            <button class="btn btn-red" style="width: 100%;" onclick="closeStock()">ANNULEREN</button>
+        </div>
+    </div>
+
+    <div id="ingPopup" class="overlay">
+        <div class="popup">
+            <h2 id="ingTitle">Ingrediënten</h2>
+            <div id="ingLinks"></div>
+            <button class="btn btn-red" style="width:100%" onclick="closeIng()">SLUITEN</button>
+        </div>
+    </div>
+
+    <div id="confirmPopup" class="overlay">
+        <div class="popup">
+            <p id="confirmText" style="font-size: 18px; font-weight: bold;">Weet je het zeker?</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-green" id="confirmYes" style="flex:1">JA</button>
+                <button class="btn btn-red" onclick="closePopup()" style="flex:1">NEE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDeleteIndex = null;
+        const ophaalAdres = "Jouw Adres Hier 123"; 
+
+        const ahLinks = {
+            "Melkchocolade 🍫": "https://www.ah.nl/producten/product/wi523483/ah-reep-melk",
+            "Pure Chocolade 🍫": "https://www.ah.nl/producten/product/wi523482/ah-reep-puur",
+            "Witte Chocolade 🤍": "https://www.ah.nl/producten/product/wi435940/ah-reep-witte-chocolade",
+            "Marshmallows ☁️": "https://www.ah.nl/producten/product/wi583917/ah-bakfeest-marshmallows-mini",
+            "Stroopwafel 🧇": "https://www.ah.nl/producten/product/wi440742/ah-mini-stroopwafels",
+            "M&M's 🔴": "https://www.ah.nl/producten/product/wi572147/m-en-m-s-minis-melk-chocolade",
+            "Oreo 🍪": "https://www.ah.nl/producten/product/wi192455/oreo-original",
+            "Pinda's 🥜": "https://www.ah.nl/producten/product/wi467588/ah-ongezouten-pinda-s",
+            "Choc Chip Melk & Puur 🍫": "https://www.ah.nl/producten/product/wi221017/ah-choc-chip-chocolade-melk-en-puur"
+        };
+
+        function checkPass() {
+            const allowedPasswords = ["Isabelle2013!", "Maas2014!", "Livia2015!", "Maud2017!"];
+            const input = document.getElementById('pass').value;
+
+            if(allowedPasswords.includes(input)) {
+                document.getElementById('login-screen').style.display='none';
+                document.getElementById('admin-content').style.display='block';
+                load();
+            } else { 
+                alert("Wachtwoord onjuist!"); 
+            }
+        }
+
+        function sendEmail(order, type) {
+            let subject = "";
+            let body = "";
+            
+            if (type === 'behandeling') {
+                subject = `We zijn begonnen aan je RockyShop reep! 🧑‍🍳`;
+                body = `Hoi ${order.name},\n\nWe zijn zojuist begonnen met het maken van jouw reep (${order.base} met ${order.toppings.join(', ')}).\n\nZodra hij klaar is en in de koeling is uitgehard, krijg je van ons nog een mailtje!\n\nSmakelijke groet, RockyShop.`;
+            } else if (type === 'klaar') {
+                subject = `Je RockyShop bestelling is klaar! 🍫`;
+                body = `Hoi ${order.name},\n\nGoed nieuws! Je handgemaakte reep is helemaal klaar.\n\nJe kunt hem komen ophalen op: ${ophaalAdres}.\n\nTot snel!`;
+            } else if (type === 'vertraging') {
+                subject = `Update over je RockyShop bestelling`;
+                body = `Hoi ${order.name},\n\nHet spijt ons, maar een van de ingrediënten is op. We gaan het zo snel mogelijk regelen!\n\nGroetjes uit de keuken.`;
+            } else if (type === 'druk') {
+                subject = `Het is druk in de RockyShop keuken! 🧑‍🍳`;
+                body = `Hoi ${order.name},\n\nHet is op dit moment erg druk in onze chocolade-keuken. Het maken van je reep duurt daarom iets langer dan gepland.\n\nBedankt voor je geduld!`;
+            } else if (type === 'afgehaald') {
+                subject = `Genoten van je RockyShop reep? 🍫`;
+                body = `Hoi ${order.name},\n\nJe hebt je reep zojuist afgehaald! We hopen dat hij heerlijk smaakt.\n\nWe zijn erg benieuwd naar je beoordeling! Zou je ons willen laten weten wat je ervan vond? Reageer simpelweg op deze mail met je review.\n\nEet smakelijk!`;
+            }
+
+            window.location.href = `mailto:${order.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
+        function openStock() {
+            const stockList = document.getElementById('stockList');
+            const savedStock = JSON.parse(localStorage.getItem('rockyStock')) || {};
+            stockList.innerHTML = "";
+            Object.keys(ahLinks).forEach(item => {
+                const data = savedStock[item] || { zakken: 0, aantal: 0, procent: 100 };
+                stockList.innerHTML += `
+                    <div class="stock-row">
+                        <label>${item}</label>
+                        <input type="number" class="stock-zakken" value="${data.zakken}" min="0">
+                        <input type="number" class="stock-aantal" value="${data.aantal}" min="0">
+                        <input type="number" class="stock-procent" value="${data.procent}" min="0" max="100">
+                    </div>`;
+            });
+            document.getElementById('stockPopup').style.display = 'flex';
+        }
+
+        function saveStock() {
+            const stockData = {};
+            document.querySelectorAll('.stock-row:not(.header-row)').forEach(row => {
+                const item = row.querySelector('label').innerText;
+                stockData[item] = {
+                    zakken: parseInt(row.querySelector('.stock-zakken').value) || 0,
+                    aantal: parseInt(row.querySelector('.stock-aantal').value) || 0,
+                    procent: row.querySelector('.stock-procent').value
+                };
+            });
+            localStorage.setItem('rockyStock', JSON.stringify(stockData));
+            alert("Voorraad opgeslagen!");
+            closeStock();
+            load();
+        }
+
+        function closeStock() { document.getElementById('stockPopup').style.display = 'none'; }
+
+        function showIngredients(index) {
+            const orders = JSON.parse(localStorage.getItem('rockyOrders'));
+            const stock = JSON.parse(localStorage.getItem('rockyStock')) || {};
+            const o = orders[index];
+            const div = document.getElementById('ingLinks');
+            div.innerHTML = "";
+            document.getElementById('ingTitle').innerText = o.name;
+
+            let missingAnything = false;
+            [o.base, ...o.toppings].forEach(item => {
+                const itemStock = stock[item] || { zakken: 0, aantal: 0 };
+                if (itemStock.zakken <= 0 && itemStock.aantal <= 0) {
+                    if(ahLinks[item]) {
+                        div.innerHTML += `<a href="${ahLinks[item]}" target="_blank" class="ah-link">🛒 BESTEL ${item.toUpperCase()}</a>`;
+                        missingAnything = true;
+                    }
+                }
+            });
+
+            if(!missingAnything) div.innerHTML = "<p>✅ Alles is nog op voorraad!</p>";
+            document.getElementById('ingPopup').style.display = 'flex';
+        }
+
+        function closeIng() { document.getElementById('ingPopup').style.display = 'none'; }
+
+        function setStatus(i, s) {
+            let orders = JSON.parse(localStorage.getItem('rockyOrders'));
+            orders[i].status = s;
+            localStorage.setItem('rockyOrders', JSON.stringify(orders));
+            load();
+        }
+
+        function closeOrder(i) {
+            let orders = JSON.parse(localStorage.getItem('rockyOrders'));
+            sendEmail(orders[i], 'afgehaald');
+            orders.splice(i, 1);
+            localStorage.setItem('rockyOrders', JSON.stringify(orders));
+            load();
+        }
+
+        function load() {
+            const div = document.getElementById('list');
+            const orders = JSON.parse(localStorage.getItem('rockyOrders')) || [];
+            const stock = JSON.parse(localStorage.getItem('rockyStock')) || {};
+            div.innerHTML = orders.length === 0 ? "<p style='text-align:center; color:white;'>Geen bestellingen.</p>" : "";
+            
+            orders.forEach((o, i) => {
+                let hasMissing = false;
+                [o.base, ...o.toppings].forEach(item => {
+                    const itemStock = stock[item] || { zakken: 0, aantal: 0 };
+                    if (itemStock.zakken <= 0 && itemStock.aantal <= 0) hasMissing = true;
+                });
+
+                let statusBtns = "";
+                if(o.status.includes('BETAALD')) {
+                    statusBtns = `
+                        <button class="btn btn-blue" onclick="setStatus(${i}, 'In-behandeling'); sendEmail(JSON.parse(localStorage.getItem('rockyOrders'))[${i}], 'behandeling')">START BEREIDING</button>
+                        <button class="btn btn-orange" onclick="sendEmail(JSON.parse(localStorage.getItem('rockyOrders'))[${i}], 'druk')">⏳ MELD DRUKTE</button>
+                    `;
+                } else if(o.status === 'In-behandeling') {
+                    statusBtns = `
+                        <button class="btn btn-green" onclick="setStatus(${i}, 'Klaar'); sendEmail(JSON.parse(localStorage.getItem('rockyOrders'))[${i}], 'klaar')">MELD KLAAR</button>
+                        <button class="btn btn-orange" onclick="sendEmail(JSON.parse(localStorage.getItem('rockyOrders'))[${i}], 'druk')">⏳ MELD DRUKTE</button>
+                    `;
+                } else if(o.status === 'Klaar') {
+                    statusBtns = `<button class="btn btn-dark" onclick="closeOrder(${i})">🎁 AFGEHAALD & CLOSE</button>`;
+                }
+
+                div.innerHTML += `
+                    <div class="order-card">
+                        <span class="status ${o.status.split(' ')[0]}">${o.status}</span>
+                        <h3 style="margin-top:0;">👤 ${o.name}</h3>
+                        <p><strong>Reep:</strong> ${o.base} met ${o.toppings.join(', ') || 'puur'}</p>
+                        
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                            <button class="btn btn-info" onclick="showIngredients(${i})">
+                                🛒 INGREDIËNTEN
+                                ${hasMissing ? '<span class="warning-badge">Er mist een ingrediënt!</span>' : ''}
+                            </button>
+                            ${statusBtns}
+                            ${hasMissing ? `<button class="btn btn-orange" onclick="sendEmail(JSON.parse(localStorage.getItem('rockyOrders'))[${i}], 'vertraging')">📧 MELD TEKORT</button>` : ''}
+                        </div>
+                        <button class="btn btn-red" style="float:right; margin-top: -40px;" onclick="askDelete(${i})">🗑️</button>
+                    </div>`;
+            });
+        }
+
+        function askDelete(i) {
+            currentDeleteIndex = i;
+            document.getElementById('confirmPopup').style.display = 'flex';
+            document.getElementById('confirmYes').onclick = function() {
+                let orders = JSON.parse(localStorage.getItem('rockyOrders'));
+                orders.splice(currentDeleteIndex, 1);
+                localStorage.setItem('rockyOrders', JSON.stringify(orders));
+                closePopup();
+                load();
+            };
+        }
+
+        function closePopup() { document.getElementById('confirmPopup').style.display = 'none'; }
+    </script>
+</body>
+</html>
