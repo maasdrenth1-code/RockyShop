@@ -148,11 +148,16 @@
         };
 
         function checkPass() {
-            if(document.getElementById('pass').value === "chocola123") {
+            const allowedPasswords = ["Isabelle2013!", "Maas2014!", "Livia2015!", "Maud2017!"];
+            const input = document.getElementById('pass').value;
+
+            if(allowedPasswords.includes(input)) {
                 document.getElementById('login-screen').style.display='none';
                 document.getElementById('admin-content').style.display='block';
                 load();
-            } else { alert("Wachtwoord onjuist!"); }
+            } else { 
+                alert("Wachtwoord onjuist!"); 
+            }
         }
 
         function sendEmail(order, type) {
