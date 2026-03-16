@@ -237,11 +237,14 @@
                         <h3>👤 ${o.name} (${o.orderId})</h3>
                         <p><strong>Reep:</strong> ${o.base} met ${o.toppings ? o.toppings.join(', ') : 'niets'}</p>
                         <p><strong>Bedrag:</strong> ${o.price}</p>
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                            <button class="btn btn-info" onclick="showIngredients('${o.id}')">🛒 VOORRAAD ${hasMissing ? '<span class="warning-badge">!</span>' : ''}</button>
-                            ${btns}
+                        
+                        <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-top: 15px;">
+                            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                                <button class="btn btn-info" onclick="showIngredients('${o.id}')">🛒 VOORRAAD ${hasMissing ? '<span class="warning-badge">!</span>' : ''}</button>
+                                ${btns}
+                            </div>
+                            <button class="btn btn-red" style="margin: 0;" onclick="verwijderOrder('${o.id}')">🗑️</button>
                         </div>
-                        <button class="btn btn-red" style="position:absolute; top:15px; right:15px;" onclick="verwijderOrder('${o.id}')">🗑️</button>
                     </div>`;
             });
         }
