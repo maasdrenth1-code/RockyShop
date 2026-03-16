@@ -116,7 +116,7 @@
         <div class="modal-content">
             <div id="input-view">
                 <h2>Jouw Gegevens</h2>
-                <p style="font-size: 13px; opacity: 0.8;">Vul je gegevens in. Na het plaatsen sturen we je een mailtje met de <b>betaallink</b>.</p>
+                <p style="font-size: 13px; opacity: 0.8;">Vul je gegevens in voor de betaallink.</p>
                 <input type="text" id="custName" placeholder="Volledige naam">
                 <input type="email" id="custContact" placeholder="E-mail adres">
                 
@@ -130,7 +130,7 @@
             </div>
 
             <div id="loading-view">
-                <h2>Bestelling versturen...</h2>
+                <h2>Bestelling verzenden...</h2>
                 <div class="loader"></div>
             </div>
 
@@ -138,7 +138,7 @@
                 <h2 style="color:#4caf50;">Bestelling Ontvangen! 🚀</h2>
                 <p>Bedankt voor je bestelling!</p>
                 <p style="background: #2b1406; padding: 15px; border-radius: 10px; font-size: 14px;">
-                    Check zo je mailbox. We sturen je zo snel mogelijk de <b>betaallink</b> toe. Zodra er betaald is, gaan we voor je bakken!
+                    Check je mail voor de betaallink. Zodra de betaling binnen is, gaan we bakken!
                 </p>
                 <button class="confirm-btn" onclick="location.reload()">NOG EEN BESTELLING</button>
             </div>
@@ -147,9 +147,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
+        // Jouw specifieke Firebase-configuratie
         const firebaseConfig = {
             apiKey: "AIzaSyAhyxUonrBYHfRrkYhxQQcfT45H4vkAMK0",
             authDomain: "rockyshop-e29bb.firebaseapp.com",
@@ -191,7 +191,7 @@
             let extra = 0;
             document.querySelectorAll('.topping-choice.selected').forEach(t => extra += parseFloat(t.getAttribute('data-price')));
             
-            // Berekening: Basis + Toppings + 2 euro vast (zoals in je code stond)
+            // Berekening: Basis + 2 euro service/maakkosten + toppings
             currentTotalNumeric = (selectedBasePrice + 2.00 + extra).toFixed(2);
             let totalFormatted = currentTotalNumeric.replace('.', ',');
             priceDisplay.innerText = "€" + totalFormatted;
@@ -211,7 +211,7 @@
             const email = document.getElementById('custContact').value;
             
             if(!name || !email) { 
-                alert("Vul je naam en e-mailadres in!"); 
+                alert("Vergeet je naam en mail niet!"); 
                 return; 
             }
 
@@ -226,21 +226,23 @@
             });
 
             try {
+                // Slaat de bestelling op in de 'orders' collectie in Firebase
                 await addDoc(collection(db, "orders"), {
                     name: name,
                     email: email,
                     base: baseName,
                     toppings: toppings,
                     price: "€" + currentTotalNumeric.replace('.', ','),
-                    status: 'Wacht op betaling (link sturen)',
+                    status: 'Wacht op betaling',
                     orderId: 'RS' + Math.floor(Math.random() * 9000 + 1000),
-                    timestamp: Date.now()
+                    timestamp: serverTimestamp() // Belangrijk voor volgorde in admin
                 });
 
                 document.getElementById('loading-view').style.display = 'none';
                 document.getElementById('success-view').style.display = 'block';
             } catch (e) {
-                alert("Oeps! Er ging iets mis. Controleer je internet.");
+                console.error("Fout bij opslaan: ", e);
+                alert("Oeps, er ging iets mis. Check je verbinding.");
                 document.getElementById('loading-view').style.display = 'none';
                 document.getElementById('input-view').style.display = 'block';
             }
