@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RockyShop - Samenstellen </title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; min-height: 100%;
+            font-family: 'Arial Black', sans-serif;
+            background-color: #5d3a24;
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(43, 20, 6, 0.9) 0px, transparent 50%),
+                radial-gradient(at 90% 85%, rgba(78, 49, 31, 0.8) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.03) 0px, transparent 30%),
+                linear-gradient(180deg, #5d3a24 0%, #4e311f 100%);
+            background-attachment: fixed;
+        }
+
+        .dripping-header {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100px;
+            background-image: url('image_5190f8.png'); background-size: contain;
+            background-repeat: repeat-x; z-index: 101; mix-blend-mode: screen; opacity: 0.8;
+        }
+
+        .container { padding: 130px 20px 60px; display: flex; flex-direction: column; align-items: center; color: white; }
+        
+        .configurator { 
+            background: rgba(43, 20, 6, 0.92); 
+            border: 5px solid #ff9800; 
+            border-radius: 25px; 
+            padding: 30px; 
+            max-width: 650px; 
+            width: 95%; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6); 
+        }
+
+        h2 { text-transform: uppercase; letter-spacing: -1px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        h3 { color: #ff9800; border-bottom: 3px solid #5d3a24; padding-bottom: 5px; margin-top: 25px; }
+        
+        .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin: 20px 0; }
+        
+        .choice { 
+            background: #5d3a24; 
+            border: 3px solid #3e2516; 
+            padding: 18px; 
+            border-radius: 15px; 
+            text-align: center; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            position: relative; 
+            font-size: 14px; 
+            box-shadow: 0 4px 0 #3e2516;
+            color: white;
+        }
+
+        .recommended::before {
+            content: "TIP! ⭐";
+            position: absolute; top: -12px; left: 50%;
+            transform: translateX(-50%);
+            background: #ff9800; color: #2b1406;
+            font-size: 10px; padding: 2px 8px;
+            border-radius: 10px; font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10;
+        }
+
+        .choice:hover { transform: translateY(-3px); box-shadow: 0 7px 0 #3e2516; border-color: #ff9800; }
+        .choice.selected { background: #ff9800; border-color: white; color: #2b1406; box-shadow: 0 4px 0 #2b1406; }
+        
+        .price-tag { background: #2b1406; padding: 20px; border-radius: 15px; margin-top: 30px; text-align: center; border: 3px dashed #ff9800; }
+        #total-price { font-size: 32px; color: #ff9800; display: block; margin-top: 5px; font-weight: bold; }
+        
+        .order-btn { background: #4caf50; color: white; border: none; padding: 18px; width: 100%; font-size: 22px; border-radius: 50px; cursor: pointer; margin-top: 20px; font-weight: bold; opacity: 0.5; pointer-events: none; text-transform: uppercase; box-shadow: 0 6px 0 #2e6631; transition: 0.2s; }
+        .order-btn.active { opacity: 1; pointer-events: auto; }
+
+        .modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
+        .modal-content { background-color: #3e2516; margin: 10% auto; padding: 35px; border: 4px solid #ff9800; width: 85%; max-width: 420px; border-radius: 25px; color: white; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+        
+        input { width: 100%; padding: 14px; margin: 12px 0; border-radius: 10px; border: 2px solid #5d3a24; box-sizing: border-box; background: #f7e9d7; color: #3e2516; font-weight: bold; }
+        .confirm-btn { background: #4caf50; color: white; border: none; padding: 16px; width: 100%; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 18px; margin-top: 15px; text-transform: uppercase; box-shadow: 0 5px 0 #2e6631; }
+        
+        #success-view, #loading-view { display: none; }
+        .loader { border: 6px solid #f3f3f3; border-top: 6px solid #ff9800; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 25px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="dripping-header"></div>
+    <div class="container">
+        <div class="configurator">
+            <h2 style="text-align:center; color:#ff9800; margin-top:0;">MAAK JE ROCKY ROAD</h2>
+            
+            <h3>1. Kies je basis (Verplicht)</h3>
+            <div class="options">
+                <div class="choice base-choice" data-name="Melkchocolade 🍫" data-price="2.00">Melkchocolade 🍫</div>
+                <div class="choice base-choice" data-name="Pure Chocolade 🍫" data-price="1.90">Pure Chocolade 🍫</div>
+                <div class="choice base-choice" data-name="Witte Chocolade 🤍" data-price="1.10">Witte Chocolade 🤍</div>
+            </div>
+            
+            <h3>2. Kies je toppings</h3>
+            <div class="options">
+                <div class="choice topping-choice" data-name="Marshmallows ☁️" data-price="1.00">Marshmallows ☁️</div>
+                <div class="choice topping-choice" data-name="Stroopwafel 🧇" data-price="1.15">Stroopwafel 🧇</div>
+                <div class="choice topping-choice recommended" data-name="M&M's 🔴" data-price="1.00">M&M's 🔴</div>
+                <div class="choice topping-choice" data-name="Oreo 🍪" data-price="0.99">Oreo 🍪</div>
+                <div class="choice topping-choice" data-name="Pinda's 🥜" data-price="0.89">Pinda's 🥜</div>
+                <div class="choice topping-choice recommended" data-name="Choc Chip Melk & Puur 🍫" data-price="0.50">Choc Chips 🍫</div>
+            </div>
+
+            <div class="price-tag">Totaalbedrag: <span id="total-price">Kies eerst een basis...</span></div>
+            <button id="order-button" class="order-btn">BESTELLING AFRONDEN</button>
+        </div>
+    </div>
+
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div id="input-view">
+                <h2>Jouw Gegevens</h2>
+                <p style="font-size: 13px; opacity: 0.8;">Vul je gegevens in voor de betaallink.</p>
+                <input type="text" id="custName" placeholder="Volledige naam">
+                <input type="email" id="custContact" placeholder="E-mail adres">
+                
+                <div style="background: #2b1406; padding: 15px; border-radius: 10px; margin: 10px 0;">
+                    <span style="font-size: 14px;">Totaal te betalen:</span><br>
+                    <span id="modal-pay-amount" style="font-size: 24px; color: #ff9800; font-weight: bold;"></span>
+                </div>
+
+                <button class="confirm-btn" id="final-confirm-btn">BESTELLING PLAATSEN</button>
+                <p id="close-modal" style="cursor:pointer; font-size:12px; margin-top:15px; opacity:0.7;">Terug naar aanpassen</p>
+            </div>
+
+            <div id="loading-view">
+                <h2>Bestelling verzenden...</h2>
+                <div class="loader"></div>
+            </div>
+
+            <div id="success-view">
+                <h2 style="color:#4caf50;">Bestelling Ontvangen! 🚀</h2>
+                <p>Bedankt voor je bestelling!</p>
+                <p style="background: #2b1406; padding: 15px; border-radius: 10px; font-size: 14px;">
+                    Check je mail voor de betaallink. Zodra de betaling binnen is, gaan we bakken!
+                </p>
+                <button class="confirm-btn" onclick="location.reload()">NOG EEN BESTELLING</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Jouw specifieke Firebase-configuratie
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhyxUonrBYHfRrkYhxQQcfT45H4vkAMK0",
+            authDomain: "rockyshop-e29bb.firebaseapp.com",
+            projectId: "rockyshop-e29bb",
+            storageBucket: "rockyshop-e29bb.firebasestorage.app",
+            messagingSenderId: "429051543496",
+            appId: "1:429051543496:web:bfd9c0acc161cd3febcafd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const baseChoices = document.querySelectorAll('.base-choice');
+        const toppingChoices = document.querySelectorAll('.topping-choice');
+        const priceDisplay = document.getElementById('total-price');
+        const orderBtn = document.getElementById('order-button');
+        let selectedBasePrice = 0;
+        let currentTotalNumeric = 0;
+
+        baseChoices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                baseChoices.forEach(c => c.classList.remove('selected'));
+                choice.classList.add('selected');
+                selectedBasePrice = parseFloat(choice.getAttribute('data-price'));
+                orderBtn.classList.add('active');
+                calculateTotal();
+            });
+        });
+
+        toppingChoices.forEach(choice => {
+            choice.addEventListener('click', () => {
+                choice.classList.toggle('selected');
+                calculateTotal();
+            });
+        });
+
+        function calculateTotal() {
+            if (selectedBasePrice === 0) return;
+            let extra = 0;
+            document.querySelectorAll('.topping-choice.selected').forEach(t => extra += parseFloat(t.getAttribute('data-price')));
+            
+            // Berekening: Basis + 2 euro service/maakkosten + toppings
+            currentTotalNumeric = (selectedBasePrice + 2.00 + extra).toFixed(2);
+            let totalFormatted = currentTotalNumeric.replace('.', ',');
+            priceDisplay.innerText = "€" + totalFormatted;
+            document.getElementById('modal-pay-amount').innerText = "€" + totalFormatted;
+        }
+
+        orderBtn.onclick = () => {
+            document.getElementById('orderModal').style.display = 'block';
+        };
+
+        document.getElementById('close-modal').onclick = () => {
+            document.getElementById('orderModal').style.display = 'none';
+        };
+
+        document.getElementById('final-confirm-btn').onclick = async () => {
+            const name = document.getElementById('custName').value;
+            const email = document.getElementById('custContact').value;
+            
+            if(!name || !email) { 
+                alert("Vergeet je naam en mail niet!"); 
+                return; 
+            }
+
+            document.getElementById('input-view').style.display = 'none';
+            document.getElementById('loading-view').style.display = 'block';
+
+            const baseElement = document.querySelector('.base-choice.selected');
+            const baseName = baseElement ? baseElement.getAttribute('data-name') : "";
+            let toppings = [];
+            document.querySelectorAll('.topping-choice.selected').forEach(t => {
+                toppings.push(t.getAttribute('data-name'));
+            });
+
+            try {
+                // Slaat de bestelling op in de 'orders' collectie in Firebase
+                await addDoc(collection(db, "orders"), {
+                    name: name,
+                    email: email,
+                    base: baseName,
+                    toppings: toppings,
+                    price: "€" + currentTotalNumeric.replace('.', ','),
+                    status: 'Wacht op betaling',
+                    orderId: 'RS' + Math.floor(Math.random() * 9000 + 1000),
+                    timestamp: serverTimestamp() // Belangrijk voor volgorde in admin
+                });
+
+                document.getElementById('loading-view').style.display = 'none';
+                document.getElementById('success-view').style.display = 'block';
+            } catch (e) {
+                console.error("Fout bij opslaan: ", e);
+                alert("Oeps, er ging iets mis. Check je verbinding.");
+                document.getElementById('loading-view').style.display = 'none';
+                document.getElementById('input-view').style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>
