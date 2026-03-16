@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>RockyShop Admin - Cloud Edition</title>
     <style>
-        /* --- DE "CHOCOLATE SWIRL" ACHTERGROND --- */
         body { 
             margin: 0; padding: 20px; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -95,13 +94,13 @@
                     <button class="btn btn-purple" onclick="openStock()">📦 VOORRAAD</button>
                 </div>
             </div>
-            <div id="list">Laden...</div>
+            <div id="list">Bestellingen ophalen...</div>
         </div>
     </div>
 
     <div id="addOrderPopup" class="overlay">
         <div class="popup">
-            <h2>➕ Bestelling Invoeren</h2>
+            <h2>➕ Handmatig Toevoegen</h2>
             <input type="text" id="newName" placeholder="Naam Klant">
             <input type="email" id="newEmail" placeholder="E-mail Klant">
             <input type="text" id="newOrderId" placeholder="Order ID (bijv. RS1234)">
@@ -137,7 +136,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAhyxUonrBYHfRrkYhxQQcfT45H4vkAMK0",
@@ -172,16 +171,18 @@
                 document.getElementById('login-screen').style.display='none';
                 document.getElementById('admin-content').style.display='block';
                 startSync();
-            } else { alert("Fout!"); }
+            } else { alert("Wachtwoord onjuist!"); }
         };
 
         function startSync() {
+            // Live synchronisatie van bestellingen (nieuwste bovenaan)
             const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
             onSnapshot(q, (snapshot) => {
                 orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAll();
             });
 
+            // Live synchronisatie van voorraad
             onSnapshot(doc(db, "settings", "stock"), (docSnap) => {
                 if (docSnap.exists()) {
                     stock = docSnap.data();
@@ -192,7 +193,11 @@
 
         function renderAll() {
             const div = document.getElementById('list');
-            div.innerHTML = orders.length === 0 ? "<p style='text-align:center; color:white;'>Geen bestellingen.</p>" : "";
+            if (orders.length === 0) {
+                div.innerHTML = "<p style='text-align:center; color:white;'>Geen bestellingen gevonden.</p>";
+                return;
+            }
+            div.innerHTML = "";
 
             orders.forEach((o) => {
                 let hasMissing = false;
@@ -203,6 +208,7 @@
 
                 let statusClass = o.status ? o.status.split(' ')[0] : 'Wacht';
                 let btns = "";
+                
                 if(o.status.includes('Wacht')) btns = `<button class="btn btn-blue" onclick="stuurMail('${o.id}', 'betaal')">📧 BETAALMAIL</button>`;
                 else if(o.status === 'Betaalgegevens verstuurd') btns = `<button class="btn btn-green" onclick="setStatus('${o.id}', 'BETAALD')">✅ BETAALD</button>`;
                 else if(o.status === 'BETAALD') btns = `<button class="btn btn-blue" onclick="setStatus('${o.id}', 'In-behandeling', 'behandeling')">🧑‍🍳 STARTEN</button>`;
@@ -233,8 +239,8 @@
                 base: document.getElementById('newBase').value,
                 toppings: tops,
                 price: document.getElementById('newPrice').value,
-                status: 'Wacht op betaling (link sturen)',
-                timestamp: Date.now()
+                status: 'Wacht op betaling',
+                timestamp: serverTimestamp()
             });
             closeAddOrder();
         };
@@ -270,17 +276,17 @@
             let sub = "", body = "";
             if(type === 'betaal') {
                 sub = `Betaalgegevens voor ${o.orderId}`;
-                body = `Hoi ${o.name},\n\nJe kunt ${o.price} overmaken naar NL53 ABNA 0545 2042 08 (Maas Drenth).`;
+                body = `Hoi ${o.name},\n\nLeuk dat je hebt besteld! Je kunt ${o.price} overmaken naar NL53 ABNA 0545 2042 08 (Maas Drenth).`;
                 setStatus(id, 'Betaalgegevens verstuurd');
             } else if(type === 'behandeling') {
                 sub = "We zijn begonnen! 🧑‍🍳";
-                body = `Hoi ${o.name}, je reep wordt nu gemaakt!`;
+                body = `Hoi ${o.name}, goed nieuws! We zijn nu bezig met het maken van je Rocky Road reep.`;
             } else if(type === 'klaar') {
                 sub = "Je reep is klaar! 🍫";
-                body = `Je kunt hem ophalen op ${ophaalAdres}.`;
+                body = `Hoi ${o.name}, je bestelling ligt voor je klaar! Je kunt hem ophalen op ${ophaalAdres}.`;
             } else if(type === 'afgehaald') {
-                sub = "Genoten?";
-                body = "Bedankt voor je bestelling bij RockyShop!";
+                sub = "Genoten van je Rocky Road?";
+                body = "Bedankt voor je bestelling bij RockyShop! We hopen dat het gesmaakt heeft.";
             }
             window.location.href = `mailto:${o.email}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
         };
@@ -308,7 +314,7 @@
                     div.innerHTML += `<a href="${ahLinks[item]}" target="_blank" class="ah-link">🛒 BESTEL ${item}</a>`;
                 }
             });
-            if(div.innerHTML === "") div.innerHTML = "✅ Alles op voorraad!";
+            if(div.innerHTML === "") div.innerHTML = "✅ Alles op voorraad voor deze reep!";
             document.getElementById('ingPopup').style.display = 'flex';
         };
         window.closeIng = () => document.getElementById('ingPopup').style.display = 'none';
