@@ -48,7 +48,6 @@
         .btn:hover { opacity: 0.8; transform: translateY(-2px); }
         .btn-blue { background: #2196F3; color: white; }
         .btn-green { background: #4caf50; color: white; }
-        .btn-orange { background: #ff9800; color: white; }
         .btn-red { background: #f44336; color: white; }
         .btn-info { background: #795548; color: white; }
         .btn-purple { background: #673ab7; color: white; box-shadow: 0 4px 0 #4527a0; }
@@ -70,12 +69,11 @@
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
         .popup { background: white; padding: 25px; border-radius: 15px; text-align: center; max-width: 500px; width: 95%; color: #3e2516; border: 5px solid #ff9800; }
         
-        /* Aangepaste Voorraad Rij */
         .stock-row { display: grid; grid-template-columns: 3fr 1fr; gap: 15px; align-items: center; border-bottom: 1px solid #eee; padding: 12px 0; text-align: left; }
         .header-row { font-size: 11px; font-weight: bold; color: #777; border-bottom: 2px solid #ddd; }
         
         .ah-link { display: block; background: #00adef; color: white; padding: 12px; margin: 8px 0; text-decoration: none; border-radius: 8px; font-weight: bold; text-align: left; }
-        .ah-link span { float: right; background: rgba(0,0,0,0.2); padding: 0 8px; border-radius: 5px; }
+        .ah-link span { float: right; background: rgba(0,0,0,0.2); padding: 0 8px; border-radius: 50px; }
     </style>
 </head>
 <body>
@@ -154,15 +152,9 @@
         const db = getFirestore(app);
 
         const receptConfig = {
-            "Melkchocolade 🍫": 1,
-            "Pure Chocolade 🍫": 1,
-            "Witte Chocolade 🤍": 1,
-            "Marshmallows ☁️": 20,
-            "Stroopwafel 🧇": 4,
-            "M&M's 🔴": 30,
-            "Oreo 🍪": 3,
-            "Pinda's 🥜": 20,
-            "Choc Chip Melk & Puur 🍫": 4
+            "Melkchocolade 🍫": 1, "Pure Chocolade 🍫": 1, "Witte Chocolade 🤍": 1,
+            "Marshmallows ☁️": 20, "Stroopwafel 🧇": 4, "M&M's 🔴": 30,
+            "Oreo 🍪": 3, "Pinda's 🥜": 20, "Choc Chip Melk & Puur 🍫": 4
         };
 
         const ahLinks = {
@@ -195,12 +187,8 @@
                 orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAll();
             });
-
             onSnapshot(doc(db, "settings", "stock"), (docSnap) => {
-                if (docSnap.exists()) {
-                    stock = docSnap.data();
-                    renderAll();
-                }
+                if (docSnap.exists()) { stock = docSnap.data(); renderAll(); }
             });
         }
 
@@ -215,7 +203,6 @@
             orders.forEach((o) => {
                 let hasMissing = false;
                 const itemsToCheck = [o.base, ...(o.toppings || [])];
-                
                 itemsToCheck.forEach(item => {
                     const nodig = receptConfig[item] || 0;
                     const inVoorraad = stock[item] ? stock[item].aantal : 0;
@@ -237,7 +224,6 @@
                         <h3>👤 ${o.name} (${o.orderId})</h3>
                         <p><strong>Reep:</strong> ${o.base} met ${o.toppings ? o.toppings.join(', ') : 'niets'}</p>
                         <p><strong>Bedrag:</strong> ${o.price}</p>
-                        
                         <div style="display:flex; justify-content: space-between; align-items: flex-end; margin-top: 15px;">
                             <div style="display:flex; gap:5px; flex-wrap:wrap;">
                                 <button class="btn btn-info" onclick="showIngredients('${o.id}')">🛒 VOORRAAD ${hasMissing ? '<span class="warning-badge">!</span>' : ''}</button>
@@ -249,22 +235,29 @@
             });
         }
 
-        window.showIngredients = (id) => {
+        window.stuurMail = function(id, type) {
             const o = orders.find(x => x.id === id);
-            const div = document.getElementById('ingLinks');
-            div.innerHTML = "";
-            const items = [o.base, ...(o.toppings || [])];
+            let sub = "", body = "";
+            
+            if(type === 'betaal') {
+                const tikkieLink = prompt("Plak hier de Tikkie-link voor " + o.name + ":");
+                if (!tikkieLink) return; // Stop als er geen link is
 
-            items.forEach(item => {
-                const nodig = receptConfig[item] || 0;
-                const inVoorraad = stock[item] ? stock[item].aantal : 0;
-                if(inVoorraad < nodig) {
-                    div.innerHTML += `<a href="${ahLinks[item]}" target="_blank" class="ah-link">🛒 BESTEL ${item} <span>Nodig: ${nodig} (Nu: ${inVoorraad})</span></a>`;
-                }
-            });
-
-            if(div.innerHTML === "") div.innerHTML = "<h3 style='color:#4caf50;'>✅ Alles op voorraad!</h3><p>Je hebt genoeg ingrediënten voor deze reep.</p>";
-            document.getElementById('ingPopup').style.display = 'flex';
+                sub = `Betaalgegevens voor bestelling ${o.orderId}`;
+                body = `Hoi ${o.name},\n\nBedankt voor je bestelling bij RockyShop!\n\nJe kunt betalen via deze Tikkie:\n${tikkieLink}\n\nZodra de Tikkie is betaald, gaan we voor je aan de slag!\n\nGroetjes,\nRockyShop`;
+                setStatus(id, 'Betaalgegevens verstuurd');
+            } else if(type === 'behandeling') {
+                sub = "We zijn begonnen! 🧑‍🍳";
+                body = `Hoi ${o.name}, goed nieuws! De betaling is binnen en we zijn nu bezig met het maken van je Rocky Road reep.`;
+            } else if(type === 'klaar') {
+                sub = "Je reep is klaar! 🍫";
+                body = `Hoi ${o.name}, je bestelling ligt voor je klaar! Je kunt hem ophalen op ons adres.\n\nGroetjes!`;
+            } else if(type === 'afgehaald') {
+                sub = "Genoten van je Rocky Road?";
+                body = `Hoi ${o.name}, bedankt voor je bestelling! We hopen dat de reep lekker was.`;
+            }
+            
+            window.location.href = `mailto:${o.email}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
         };
 
         window.setStatus = async (id, s, mailType) => {
@@ -272,17 +265,31 @@
             if(mailType) stuurMail(id, mailType);
         };
 
+        window.showIngredients = (id) => {
+            const o = orders.find(x => x.id === id);
+            const div = document.getElementById('ingLinks');
+            div.innerHTML = "";
+            const items = [o.base, ...(o.toppings || [])];
+            items.forEach(item => {
+                const nodig = receptConfig[item] || 0;
+                const inVoorraad = stock[item] ? stock[item].aantal : 0;
+                if(inVoorraad < nodig) {
+                    div.innerHTML += `<a href="${ahLinks[item]}" target="_blank" class="ah-link">🛒 BESTEL ${item} <span>Nodig: ${nodig} (Nu: ${inVoorraad})</span></a>`;
+                }
+            });
+            if(div.innerHTML === "") div.innerHTML = "<h3 style='color:#4caf50;'>✅ Alles op voorraad!</h3>";
+            document.getElementById('ingPopup').style.display = 'flex';
+        };
+
         window.verwijderOrder = async (id, metVoorraadAftrek) => {
             const o = orders.find(x => x.id === id);
             if(!o) return;
-            const bevestigBericht = metVoorraadAftrek ? "Is de reep afgehaald? De voorraad wordt nu verminderd." : "Bestelling verwijderen?";
-            if(confirm(bevestigBericht)) {
+            const bevestig = metVoorraadAftrek ? "Afgehaald? Voorraad wordt bijgewerkt." : "Verwijderen?";
+            if(confirm(bevestig)) {
                 if(metVoorraadAftrek) {
                     const newStock = { ...stock };
                     [o.base, ...(o.toppings || [])].forEach(item => {
-                        if(newStock[item] && receptConfig[item]) {
-                            newStock[item].aantal = Math.max(0, (newStock[item].aantal || 0) - receptConfig[item]);
-                        }
+                        if(newStock[item]) newStock[item].aantal = Math.max(0, (newStock[item].aantal || 0) - receptConfig[item]);
                     });
                     await setDoc(doc(db, "settings", "stock"), newStock);
                     stuurMail(id, 'afgehaald');
@@ -295,9 +302,7 @@
             const newStock = {};
             document.querySelectorAll('.stock-row:not(.header-row)').forEach(row => {
                 const item = row.querySelector('label').innerText;
-                newStock[item] = {
-                    aantal: parseInt(row.querySelector('.stock-aantal').value) || 0
-                };
+                newStock[item] = { aantal: parseInt(row.querySelector('.stock-aantal').value) || 0 };
             });
             await setDoc(doc(db, "settings", "stock"), newStock);
             closeStock();
@@ -313,7 +318,6 @@
             document.getElementById('stockPopup').style.display = 'flex';
         };
 
-        // --- Rest van de functies ---
         document.getElementById('saveBtn').onclick = async () => {
             const tops = document.getElementById('newToppings').value.split(',').map(t => t.trim()).filter(t => t !== "");
             await addDoc(collection(db, "orders"), {
@@ -324,7 +328,7 @@
             });
             closeAddOrder();
         };
-        window.stuurMail = function(id, type) { /* ... je bestaande mail code ... */ };
+
         window.openAddOrder = () => document.getElementById('addOrderPopup').style.display = 'flex';
         window.closeAddOrder = () => document.getElementById('addOrderPopup').style.display = 'none';
         window.closeStock = () => document.getElementById('stockPopup').style.display = 'none';
